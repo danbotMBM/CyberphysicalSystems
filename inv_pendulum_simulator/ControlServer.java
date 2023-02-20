@@ -156,9 +156,10 @@ class PoleServer_handler implements Runnable {
         double action = 0;
         double propGainA = 5.0;
         double derGainA = 0.5;
-        double propGainP = 0.05;
+        double propGainP = 0.09;
         double derGainP = 0.3;
-        action = angle*propGainA + angleDot*derGainA + posDot*derGainP + pos*propGainP;
+        double desiredPos = 2.0;
+        action = angle*propGainA + angleDot*derGainA + posDot*derGainP + (pos - desiredPos)*propGainP;
         return action;
    }
 
