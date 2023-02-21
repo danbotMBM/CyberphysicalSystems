@@ -30,7 +30,7 @@ class Sensor implements Runnable {
         while (true) {
             // Sensor will get four data from each pendulum
             // {angle, angleDot, pos, posDot}
-            double sensorData[] = new double[4 * physics.NUM_POLES];
+            double sensorData[] = new double[5 * physics.NUM_POLES];
             Pendulum[] pendulums = physics.get_pendulums();
 
             for (int i = 0; i < pendulums.length; i++) {
@@ -56,6 +56,7 @@ class Sensor implements Runnable {
                    sensorData[i*4+1] = angleDot;
                    sensorData[i*4+2] = pos;
                    sensorData[i*4+3] = posDot;
+                   sensorData[i*4+4] = (double)pendulums[i].get_id();
                 }
             }
 

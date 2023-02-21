@@ -5,10 +5,15 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+
+
 public class ControlServer {
 
     private static ServerSocket serverSocket;
     private static final int port = 25533;
+
+
+
 
     /**
      * Main method that creates new socket and PoleServer instance and runs it.
@@ -34,7 +39,7 @@ public class ControlServer {
  */
 class PoleServer_handler implements Runnable {
     // Set the number of poles
-    private static final int NUM_POLES = 1;
+    private static final int NUM_POLES = 2;
 
     static ServerSocket providerSocket;
     Socket connection = null;
@@ -43,6 +48,8 @@ class PoleServer_handler implements Runnable {
     String message = "abc";
     static Socket clientSocket;
     Thread t;
+    double[] cart1 = {0.0,0.0,0.0,0.0};
+    double[] cart2 = {0.0,0.0,0.0,0.0};
 
     /**
      * Class Constructor
@@ -60,7 +67,7 @@ class PoleServer_handler implements Runnable {
         }
         t.start();
     }
-    double angle, angleDot, pos, posDot, action = 0, i = 0;
+    double angle, angleDot, pos, posDot, action, poleID = 0, i = 0;
 
     /**
      * This method receives the pole positions and calculates the updated value
@@ -87,7 +94,7 @@ class PoleServer_handler implements Runnable {
                 }
 
                 double[] data= (double[])(obj);
-                assert(data.length == NUM_POLES * 4);
+                assert(data.length == NUM_POLES * 5);
                 double[] actions = new double[NUM_POLES];
 
                 // Get sensor data of each pole and calculate the action to be
@@ -101,10 +108,11 @@ class PoleServer_handler implements Runnable {
                   angleDot = data[i*4+1];
                   pos = data[i*4+2];
                   posDot = data[i*4+3];
+                  poleID = data[i*4+4];
 
                   System.out.println("server < pole["+i+"]: "+angle+"  "
-                      +angleDot+"  "+pos+"  "+posDot);
-                  actions[i] = calculate_action(angle, angleDot, pos, posDot);
+                      +angleDot+"  "+pos+"  "+posDot + " " + poleID);
+                  actions[i] = calculate_action(angle, angleDot, pos, posDot, poleID);
                 }
 
                 sendMessage_doubleArray(actions);
@@ -152,13 +160,20 @@ class PoleServer_handler implements Runnable {
     // TODO: Current implementation assumes that each pole is controlled
     // independently. The interface needs to be changed if the control of one
     // pendulum needs sensing data from other pendulums.
-    double calculate_action(double angle, double angleDot, double pos, double posDot) {
+    double calculate_action(double angle, double angleDot, double pos, double posDot, double poleID) {
         double action = 0;
         double propGainA = 5.0;
         double derGainA = 0.5;
         double propGainP = 0.09;
         double derGainP = 0.3;
         double desiredPos = 2.0;
+
+        
+        if (poleID == 2){
+            //the second pole
+            desiredPos = cart1[3] + 0.3;
+        }
+
         action = angle*propGainA + angleDot*derGainA + posDot*derGainP + (pos - desiredPos)*propGainP;
         return action;
    }
