@@ -34,7 +34,7 @@ public class ControlServer {
  */
 class PoleServer_handler implements Runnable {
     // Set the number of poles
-    private static final int NUM_POLES = 1;
+    private static final int NUM_POLES = 2;
 
     static ServerSocket providerSocket;
     Socket connection = null;
@@ -104,7 +104,7 @@ class PoleServer_handler implements Runnable {
 
                   System.out.println("server < pole["+i+"]: "+angle+"  "
                       +angleDot+"  "+pos+"  "+posDot);
-                  actions[i] = calculate_action(angle, angleDot, pos, posDot);
+                  actions[i] = calculate_action(angle, angleDot, pos, posDot, i);
                 }
 
                 sendMessage_doubleArray(actions);
@@ -147,19 +147,40 @@ class PoleServer_handler implements Runnable {
 
     }
 
+    double[][] carts = new double[NUM_POLES][4];
+    
     // Calculate the actions to be applied to the inverted pendulum from the
     // sensing data.
     // TODO: Current implementation assumes that each pole is controlled
     // independently. The interface needs to be changed if the control of one
     // pendulum needs sensing data from other pendulums.
-    double calculate_action(double angle, double angleDot, double pos, double posDot) {
+    double calculate_action(double angle, double angleDot, double pos, double posDot, int cartID) {
         double action = 0;
         double propGainA = 5.0;
-        double derGainA = 0.5;
-        double propGainP = 0.09;
-        double derGainP = 0.3;
+        double derGainA = 1.5;
+        double propGainP = 0.1;
+        double derGainP = 0.9;
         double desiredPos = 2.0;
-        action = angle*propGainA + angleDot*derGainA + posDot*derGainP + (pos - desiredPos)*propGainP;
+        double desiredVel = 0.0;
+
+        carts[cartID][0] = angle;
+        carts[cartID][1] = angleDot;
+        carts[cartID][2] = pos;
+        carts[cartID][3] = posDot;
+
+        System.out.println("ID: " + cartID);
+        if (cartID == 1){
+            double desiredDist = 1.2;
+            desiredPos = carts[0][2] + desiredDist; // the desired position is to the right of the current cart 0 position
+            double distance = Math.abs(pos - desiredPos);
+            if (distance >= 0.0001){
+                double acc = Math.pow(1-Math.abs((desiredDist - distance)/distance),2);
+                System.out.println(acc);
+                if (distance != 0.0) desiredVel = carts[0][3] * acc; // the desired velocity is close to the cart 0 velocity the closer the cart 0 is
+            }
+        }
+
+        action = angle*propGainA + angleDot*derGainA + (posDot - desiredVel)*derGainP + (pos - desiredPos)*propGainP;
         return action;
    }
 
