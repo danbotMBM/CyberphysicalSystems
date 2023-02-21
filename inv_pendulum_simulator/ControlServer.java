@@ -5,10 +5,15 @@ import java.io.*;
 import java.net.*;
 import java.util.*;
 
+
+
 public class ControlServer {
 
     private static ServerSocket serverSocket;
     private static final int port = 25533;
+
+
+
 
     /**
      * Main method that creates new socket and PoleServer instance and runs it.
@@ -43,6 +48,8 @@ class PoleServer_handler implements Runnable {
     String message = "abc";
     static Socket clientSocket;
     Thread t;
+    double[] cart1 = {0.0,0.0,0.0,0.0};
+    double[] cart2 = {0.0,0.0,0.0,0.0};
 
     /**
      * Class Constructor
@@ -60,7 +67,7 @@ class PoleServer_handler implements Runnable {
         }
         t.start();
     }
-    double angle, angleDot, pos, posDot, action = 0, i = 0;
+    double angle, angleDot, pos, posDot, action, poleID = 0, i = 0;
 
     /**
      * This method receives the pole positions and calculates the updated value
@@ -87,7 +94,7 @@ class PoleServer_handler implements Runnable {
                 }
 
                 double[] data= (double[])(obj);
-                assert(data.length == NUM_POLES * 4);
+                assert(data.length == NUM_POLES * 5);
                 double[] actions = new double[NUM_POLES];
 
                 // Get sensor data of each pole and calculate the action to be
@@ -158,7 +165,7 @@ class PoleServer_handler implements Runnable {
         double action = 0;
         double propGainA = 5.0;
         double derGainA = 1.5;
-        double propGainP = 0.1;
+        double propGainP = 0.5;
         double derGainP = 0.9;
         double desiredPos = 2.0;
         double desiredVel = 0.0;
@@ -175,6 +182,7 @@ class PoleServer_handler implements Runnable {
             double distance = Math.abs(pos - desiredPos);
             if (distance >= 0.0001){
                 double acc = Math.pow(1-Math.abs((desiredDist - distance)/distance),2);
+                if (acc > 1.0) acc = 1.0;
                 System.out.println(acc);
                 if (distance != 0.0) desiredVel = carts[0][3] * acc; // the desired velocity is close to the cart 0 velocity the closer the cart 0 is
             }
