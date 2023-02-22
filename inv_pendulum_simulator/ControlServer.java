@@ -179,11 +179,6 @@ class PoleServer_handler implements Runnable {
             desiredVel = carts[0][3];
         }
 
-        // if (cartID == 1) {
-        //     double desiredDist = 1.2;
-        //     desiredPos = carts[0][2] + desiredDist;
-        // }
-
         action = angle*propGainA + angleDot*derGainA + (posDot - desiredVel)*derGainP + (pos - desiredPos)*propGainP;
         return action;
    }
