@@ -12,9 +12,6 @@ public class ControlServer {
     private static ServerSocket serverSocket;
     private static final int port = 25533;
 
-
-
-
     /**
      * Main method that creates new socket and PoleServer instance and runs it.
      */
@@ -177,16 +174,22 @@ class PoleServer_handler implements Runnable {
 
         System.out.println("ID: " + cartID);
         if (cartID == 1){
-            double desiredDist = 1.2;
+            double desiredDist = 0.5;
             desiredPos = carts[0][2] + desiredDist; // the desired position is to the right of the current cart 0 position
-            double distance = Math.abs(pos - desiredPos);
+            double distance = Math.abs(pos - carts[0][2]);
             if (distance >= 0.0001){
-                double acc = Math.pow(1-Math.abs((desiredDist - distance)/distance),2);
+                // double acc = Math.pow(1-Math.abs((desiredDist - distance)/distance), 2);
+                double acc = 1 + Math.pow((desiredDist - distance)/distance, 2);
                 if (acc > 1.0) acc = 1.0;
                 System.out.println(acc);
-                if (distance != 0.0) desiredVel = carts[0][3] * acc; // the desired velocity is close to the cart 0 velocity the closer the cart 0 is
+                if (distance != 0.0) desiredVel = carts[0][3] * acc; //the desired velocity is the cart we are following's velocity times the accuracy factor
             }
         }
+
+        // if (cartID == 1) {
+        //     double desiredDist = 1.2;
+        //     desiredPos = carts[0][2] + desiredDist;
+        // }
 
         action = angle*propGainA + angleDot*derGainA + (posDot - desiredVel)*derGainP + (pos - desiredPos)*propGainP;
         return action;
