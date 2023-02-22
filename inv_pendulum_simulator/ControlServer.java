@@ -176,14 +176,7 @@ class PoleServer_handler implements Runnable {
         if (cartID == 1){
             double desiredDist = 0.5;
             desiredPos = carts[0][2] + desiredDist; // the desired position is to the right of the current cart 0 position
-            double distance = Math.abs(pos - carts[0][2]);
-            if (distance >= 0.0001){
-                // double acc = Math.pow(1-Math.abs((desiredDist - distance)/distance), 2);
-                double acc = 1 + Math.pow((desiredDist - distance)/distance, 2);
-                if (acc > 1.0) acc = 1.0;
-                System.out.println(acc);
-                if (distance != 0.0) desiredVel = carts[0][3] * acc; //the desired velocity is the cart we are following's velocity times the accuracy factor
-            }
+            desiredVel = carts[0][3];
         }
 
         // if (cartID == 1) {
