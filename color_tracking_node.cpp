@@ -66,65 +66,67 @@ void cv_color_tracking(const Mat& input_img, ros::Publisher &controlPub)
     
     int iLowV = 60;
     int iHighV = 255;
-    
-    Mat imgLines = Mat::zeros(input_img.size(), CV_8UC3);    
-    Mat imgHSV;
-    //convert input image from RGB to HSV
-    cvtColor(input_img, imgHSV, CV_RGB2HSV);
 
-    Mat1b mask1;
-    Mat1b mask2;
+    cv::imshow("input", input_img);
     
-    //inRange(imgHSV, Scalar(105, 150, 50), Scalar(125, 255, 255), mask1); // red
-    //Mat1b mask = mask1;
+    // Mat imgLines = Mat::zeros(input_img.size(), CV_8UC3);    
+    // Mat imgHSV;
+    // //convert input image from RGB to HSV
+    // cvtColor(input_img, imgHSV, CV_RGB2HSV);
 
-    cv::inRange(imgHSV, cv::Scalar(0, 70, 50), cv::Scalar(10, 255, 255), mask1);    //Blue
-    cv::inRange(imgHSV, cv::Scalar(170, 70, 50), cv::Scalar(180, 255, 255), mask2); // Blue
-    cv::Mat1b mask = mask1 | mask2;
+    // Mat1b mask1;
+    // Mat1b mask2;
+    
+    // //inRange(imgHSV, Scalar(105, 150, 50), Scalar(125, 255, 255), mask1); // red
+    // //Mat1b mask = mask1;
 
-    erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-    dilate(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    // cv::inRange(imgHSV, cv::Scalar(0, 70, 50), cv::Scalar(10, 255, 255), mask1);    //Blue
+    // cv::inRange(imgHSV, cv::Scalar(170, 70, 50), cv::Scalar(180, 255, 255), mask2); // Blue
+    // cv::Mat1b mask = mask1 | mask2;
+
+    // erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    // dilate(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
     
-    //morphological closing (removes small holes from the foreground)
-    dilate( mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-    erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    // //morphological closing (removes small holes from the foreground)
+    // dilate( mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    // erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
     
-    //Find the contour, then indentify rectangle, center, radius using openCV build in functions
-    vector<vector<Point> > contours;
-    vector<Vec4i> hierarchy;
-    findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+    // //Find the contour, then indentify rectangle, center, radius using openCV build in functions
+    // vector<vector<Point> > contours;
+    // vector<Vec4i> hierarchy;
+    // findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
    
 
-    double limit = 12000;
-    int detected = false;
-    std_msgs::Int16 msg;
+    // double limit = 12000;
+    // int detected = false;
+    // std_msgs::Int16 msg;
 
-    size_t num_contours = contours.size();
-    for (size_t i = 0; i < num_contours; i++) {
-	double area = contourArea(contours[i]);
-	//cout << "Area:" << area << endl;
-	if (area > limit) {
-            cout << "Area: " << area << endl;
-	    detected = true;
-	}
-    }
-    if (detected){
-        detected_count += 1;
-    }else{
-        detected_count = 0;
-    }
+    // size_t num_contours = contours.size();
+    // for (size_t i = 0; i < num_contours; i++) {
+	// double area = contourArea(contours[i]);
+	// //cout << "Area:" << area << endl;
+	// if (area > limit) {
+    //         cout << "Area: " << area << endl;
+	//     detected = true;
+	// }
+    // }
+    // if (detected){
+    //     detected_count += 1;
+    // }else{
+    //     detected_count = 0;
+    // }
     
-    if (detected_count >= 2) {
-        cout << "Detected" << std::endl;
-        msg.data = 1;
-        controlPub.publish(msg);
-    }else{
-        cout << "Haven't detected" << std::endl;
-	msg.data = 0;
-        controlPub.publish(msg);
-    }
-    //cv::imshow("color_tracking_input_image", input_img);
-    //cv::imshow("blue_tracking", mask); 
+    // if (detected_count >= 2) {
+    //     cout << "Detected" << std::endl;
+    //     msg.data = 1;
+    //     controlPub.publish(msg);
+    // }else{
+    //     cout << "Haven't detected" << std::endl;
+	// msg.data = 0;
+    //     controlPub.publish(msg);
+    // }
+    cv::imshow("color_tracking_input_image", input_img);
+    cv::imshow("blue_tracking", mask); 
     
     waitKey(1);
 }
