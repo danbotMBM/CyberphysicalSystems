@@ -47,7 +47,7 @@ void cv_process_img(const Mat& input_img, Mat& output_img)
     int apertureSize = 3;
     
     Canny(gray_img, output_img, t1, t2, apertureSize);
-    cv::imshow("canny edge",output_img);
+    //cv::imshow("canny edge",output_img);
 }
 
 void cv_publish_img(image_transport::Publisher &pub, Mat& pub_img)
@@ -68,100 +68,142 @@ void cv_color_tracking(const Mat& input_img, ros::Publisher &controlPub)
     int iLowV = 60;
     int iHighV = 255;
 
-    Mat gray_img;
-    cvtColor(input_img, gray_img, CV_BGR2GRAY);
+    // Mat gray_img;
+    // cvtColor(input_img, gray_img, CV_BGR2GRAY);
 
-    Mat channels[3];
-    split(input_img, channels);
-
-    
-    
-    double t1 = 20;
-    double t2 = 50;
-    int apertureSize = 3;
-
-    Mat edges;
-    
-    Canny(channels[2], edges, t1, t2, apertureSize);
-
-    cv::imshow("red", channels[2]);
+    // Mat channels[3];
+    // split(input_img, channels);
 
     
-    vector<vector<Point>> contours;
-    findContours(edges, contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
-    vector<vector<Point>> contours_poly(contours.size());
-    vector<Rect> boundRect(contours.size());
     
-    for(size_t i = 0; i < contours.size(); i++){
-        approxPolyDP(contours[i], contours_poly[i], 3, true);
-        boundRect[i] = boundingRect(contours_poly[i]);
-    }
-    Mat drawing = Mat::zeros(edges.size(), CV_8UC3);
+    // double t1 = 150;
+    // double t2 = 200;
+    // int apertureSize = 3;
 
-    for(size_t i = 0; i < contours.size(); i++){
-        Scalar color = Scalar(255, 0,0);
-        drawContours(drawing, contours, (int)i, color);
-        rectangle(drawing, boundRect[i].tl(), boundRect[i].br(), color, 2);
-    }
-    cv::imshow("drawing", drawing);
-    // Mat imgLines = Mat::zeros(input_img.size(), CV_8UC3);    
-    // Mat imgHSV;
-    // //convert input image from RGB to HSV
-    // cvtColor(input_img, imgHSV, CV_RGB2HSV);
-
-    // Mat1b mask1;
-    // Mat1b mask2;
+    // Mat edges;
     
-    // //inRange(imgHSV, Scalar(105, 150, 50), Scalar(125, 255, 255), mask1); // red
-    // //Mat1b mask = mask1;
+    // Canny(channels[2], edges, t1, t2, apertureSize);
+
+    // cv::imshow("red", channels[2]);
+
+    
+    // vector<vector<Point>> contours;
+    // findContours(edges, contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+    // vector<vector<Point>> contours_poly(contours.size());
+    // vector<Rect> boundRect(contours.size());
+    
+    // for(size_t i = 0; i < contours.size(); i++){
+    //     approxPolyDP(contours[i], contours_poly[i], 3, true);
+    //     boundRect[i] = boundingRect(contours_poly[i]);
+    // }
+    // Mat drawing = Mat::zeros(edges.size(), CV_8UC3);
+
+    // for(size_t i = 0; i < contours.size(); i++){
+    //     Scalar color = Scalar(255, 0,0);
+    //     drawContours(drawing, contours, (int)i, color);
+    //     rectangle(drawing, boundRect[i].tl(), boundRect[i].br(), color, 2);
+    // }
+    // cv::imshow("drawing", drawing);
+    Mat imgLines = Mat::zeros(input_img.size(), CV_8UC3);    
+    Mat imgHSV;
+    //convert input image from RGB to HSV
+    cvtColor(input_img, imgHSV, CV_BGR2HSV);
+
+    Mat1b mask1;
+    Mat1b mask2;
+    
+    // inRange(imgHSV, Scalar(105, 150, 50), Scalar(125, 255, 255), mask1); // red
+    // Mat1b mask = mask1;
+
+    cv::inRange(imgHSV, cv::Scalar(0, 50, 20), cv::Scalar(10, 255, 255), mask1);    // red
+    cv::inRange(imgHSV, cv::Scalar(170, 50, 20), cv::Scalar(180, 255, 255), mask2); // red
+    cv::Mat1b mask = mask1 | mask2;
 
     // cv::inRange(imgHSV, cv::Scalar(0, 70, 50), cv::Scalar(10, 255, 255), mask1);    //Blue
     // cv::inRange(imgHSV, cv::Scalar(170, 70, 50), cv::Scalar(180, 255, 255), mask2); // Blue
     // cv::Mat1b mask = mask1 | mask2;
 
-    // erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-    // dilate(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    dilate(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
     
-    // //morphological closing (removes small holes from the foreground)
-    // dilate( mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
-    // erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    //morphological closing (removes small holes from the foreground)
+    dilate( mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
+    erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
     
-    // //Find the contour, then indentify rectangle, center, radius using openCV build in functions
-    // vector<vector<Point> > contours;
-    // vector<Vec4i> hierarchy;
-    // findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
-   
+    //Find the contour, then indentify rectangle, center, radius using openCV build in functions
+    vector<vector<Point> > contours;
+    vector<Vec4i> hierarchy;
+    findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+    cout << "Contours.size(): " << contours.size() << std::endl;
 
-    // double limit = 12000;
-    // int detected = false;
-    // std_msgs::Int16 msg;
+    GaussianBlur(mask, mask, Size(9, 9), 2, 2);
 
-    // size_t num_contours = contours.size();
-    // for (size_t i = 0; i < num_contours; i++) {
-	// double area = contourArea(contours[i]);
-	// //cout << "Area:" << area << endl;
-	// if (area > limit) {
-    //         cout << "Area: " << area << endl;
-	//     detected = true;
-	// }
-    // }
-    // if (detected){
-    //     detected_count += 1;
-    // }else{
-    //     detected_count = 0;
-    // }
+    vector<Vec3f> circles;
+    HoughCircles(mask, circles, CV_HOUGH_GRADIENT, 1, mask.rows/8, 100, 20, 0, 0);
+
     
-    // if (detected_count >= 2) {
-    //     cout << "Detected" << std::endl;
-    //     msg.data = 1;
-    //     controlPub.publish(msg);
-    // }else{
-    //     cout << "Haven't detected" << std::endl;
-	// msg.data = 0;
-    //     controlPub.publish(msg);
-    // }
-    // cv::imshow("color_tracking_input_image", input_img);
-    // cv::imshow("blue_tracking", mask); 
+    for(size_t j = 0; j < contours.size(); j++){
+        Point center(std::round(circles[j][0]), std::round(circles[j][1]));
+
+        int radius = std::round(circles[j][2]);
+
+        circle(input_img, center, radius, Scalar(0, 255, 0), 5);
+
+    }
+
+
+    double limit = 2000;
+    double upperLimit = 180000;
+    int detected = false;
+    std_msgs::Int16 msg;
+
+
+    vector<bool> detects(contours.size(), false);
+  
+
+    size_t num_contours = contours.size();
+    for (size_t i = 0; i < num_contours; i++) {
+        double area = contourArea(contours[i]);
+        //cout << "Area:" << area << endl;
+        if (area > limit && area < upperLimit) {
+            cout << "Area: " << area << endl;
+            detects[i] = true;
+        }
+    }
+    
+    // DRAW BOUNDING BOXES
+
+    findContours(mask, contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+    vector<vector<Point>> contours_poly(contours.size());
+    vector<Rect> boundRect(contours.size());
+
+    for(size_t i = 0; i < contours.size(); i++){
+        approxPolyDP(contours[i], contours_poly[i], 3, true);
+        boundRect[i] = boundingRect(contours_poly[i]);
+    }
+
+    
+    for(size_t i = 0; i < contours.size(); i++){
+        Scalar color = Scalar(255, 0,0);
+        if (detects[i]){
+            drawContours(input_img, contours, (int)i, color);
+            rectangle(input_img, boundRect[i].tl(), boundRect[i].br(), color, 2);
+        }
+    }
+
+
+
+    if (detected) {
+        cout << "Detected" << std::endl;
+        msg.data = 1;
+        controlPub.publish(msg);
+    }else{
+        cout << "Haven't detected" << std::endl;
+	    msg.data = 0;
+        controlPub.publish(msg);
+    }
+    cv::imshow("color_tracking_input_image", input_img);
+    cv::imshow("blue_tracking", mask); 
     
     waitKey(1);
 }
