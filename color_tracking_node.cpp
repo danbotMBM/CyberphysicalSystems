@@ -47,6 +47,7 @@ void cv_process_img(const Mat& input_img, Mat& output_img)
     int apertureSize = 3;
     
     Canny(gray_img, output_img, t1, t2, apertureSize);
+    cv::imshow("canny edge",output_img);
 }
 
 void cv_publish_img(image_transport::Publisher &pub, Mat& pub_img)
@@ -67,8 +68,42 @@ void cv_color_tracking(const Mat& input_img, ros::Publisher &controlPub)
     int iLowV = 60;
     int iHighV = 255;
 
-    cv::imshow("input", input_img);
+    Mat gray_img;
+    cvtColor(input_img, gray_img, CV_BGR2GRAY);
+
+    Mat channels[3];
+    split(input_img, channels);
+
     
+    
+    double t1 = 20;
+    double t2 = 50;
+    int apertureSize = 3;
+
+    Mat edges;
+    
+    Canny(channels[2], edges, t1, t2, apertureSize);
+
+    cv::imshow("red", channels[2]);
+
+    
+    vector<vector<Point>> contours;
+    findContours(edges, contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+    vector<vector<Point>> contours_poly(contours.size());
+    vector<Rect> boundRect(contours.size());
+    
+    for(size_t i = 0; i < contours.size(); i++){
+        approxPolyDP(contours[i], contours_poly[i], 3, true);
+        boundRect[i] = boundingRect(contours_poly[i]);
+    }
+    Mat drawing = Mat::zeros(edges.size(), CV_8UC3);
+
+    for(size_t i = 0; i < contours.size(); i++){
+        Scalar color = Scalar(255, 0,0);
+        drawContours(drawing, contours, (int)i, color);
+        rectangle(drawing, boundRect[i].tl(), boundRect[i].br(), color, 2);
+    }
+    cv::imshow("drawing", drawing);
     // Mat imgLines = Mat::zeros(input_img.size(), CV_8UC3);    
     // Mat imgHSV;
     // //convert input image from RGB to HSV
@@ -125,8 +160,8 @@ void cv_color_tracking(const Mat& input_img, ros::Publisher &controlPub)
 	// msg.data = 0;
     //     controlPub.publish(msg);
     // }
-    cv::imshow("color_tracking_input_image", input_img);
-    cv::imshow("blue_tracking", mask); 
+    // cv::imshow("color_tracking_input_image", input_img);
+    // cv::imshow("blue_tracking", mask); 
     
     waitKey(1);
 }
