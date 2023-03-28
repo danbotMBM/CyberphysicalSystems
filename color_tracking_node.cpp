@@ -115,8 +115,8 @@ void cv_color_tracking(const Mat& input_img, ros::Publisher &controlPub)
     // inRange(imgHSV, Scalar(105, 150, 50), Scalar(125, 255, 255), mask1); // red
     // Mat1b mask = mask1;
 
-    cv::inRange(imgHSV, cv::Scalar(0, 50, 20), cv::Scalar(10, 255, 255), mask1);    // red
-    cv::inRange(imgHSV, cv::Scalar(170, 50, 20), cv::Scalar(180, 255, 255), mask2); // red
+    cv::inRange(imgHSV, cv::Scalar(0, 100, 20), cv::Scalar(9, 255, 255), mask1);    // red
+    cv::inRange(imgHSV, cv::Scalar(171, 100, 20), cv::Scalar(180, 255, 255), mask2); // red
     cv::Mat1b mask = mask1 | mask2;
 
     // cv::inRange(imgHSV, cv::Scalar(0, 70, 50), cv::Scalar(10, 255, 255), mask1);    //Blue
@@ -130,26 +130,52 @@ void cv_color_tracking(const Mat& input_img, ros::Publisher &controlPub)
     dilate( mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
     erode(mask, mask, getStructuringElement(MORPH_ELLIPSE, Size(5, 5)) );
     
-    //Find the contour, then indentify rectangle, center, radius using openCV build in functions
-    vector<vector<Point> > contours;
-    vector<Vec4i> hierarchy;
-    findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
-    cout << "Contours.size(): " << contours.size() << std::endl;
+    // //Find the contour, then indentify rectangle, center, radius using openCV build in functions
+    // vector<vector<Point> > contours;
+    // vector<Vec4i> hierarchy;
+    // findContours(mask, contours, hierarchy, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, Point(0, 0) );
+    // cout << "Contours.size(): " << contours.size() << std::endl;
 
-    GaussianBlur(mask, mask, Size(9, 9), 2, 2);
+    //GaussianBlur(mask, mask, Size(9, 9), 2, 2);
 
-    vector<Vec3f> circles;
-    HoughCircles(mask, circles, CV_HOUGH_GRADIENT, 1, mask.rows/8, 100, 20, 0, 0);
 
     
-    for(size_t j = 0; j < contours.size(); j++){
-        Point center(std::round(circles[j][0]), std::round(circles[j][1]));
+    
+    
 
-        int radius = std::round(circles[j][2]);
 
-        circle(input_img, center, radius, Scalar(0, 255, 0), 5);
+    // vector<bool> detects(contours.size(), false);
+  
 
-    }
+    // size_t num_contours = contours.size();
+    // for (size_t i = 0; i < num_contours; i++) {
+    //     double area = contourArea(contours[i]);
+    //     //cout << "Area:" << area << endl;
+    //     if (area > limit && area < upperLimit) {
+    //         cout << "Area: " << area << endl;
+    //         detects[i] = true;
+    //     }
+    // }
+    
+    // // DRAW BOUNDING BOXES
+
+    // findContours(mask, contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
+    // vector<vector<Point>> contours_poly(contours.size());
+    // vector<Rect> boundRect(contours.size());
+
+    // for(size_t i = 0; i < contours.size(); i++){
+    //     approxPolyDP(contours[i], contours_poly[i], 3, true);
+    //     boundRect[i] = boundingRect(contours_poly[i]);
+    // }
+
+    
+    // for(size_t i = 0; i < contours.size(); i++){
+    //     Scalar color = Scalar(255, 0,0);
+    //     if (detects[i]){
+    //         drawContours(input_img, contours, (int)i, color);
+    //         rectangle(input_img, boundRect[i].tl(), boundRect[i].br(), color, 2);
+    //     }
+    // }
 
 
     double limit = 2000;
@@ -157,44 +183,37 @@ void cv_color_tracking(const Mat& input_img, ros::Publisher &controlPub)
     int detected = false;
     std_msgs::Int16 msg;
 
+    //DETECT CIRCLES
+    vector<Vec3f> circles;
+    HoughCircles(mask, circles, CV_HOUGH_GRADIENT, 1, mask.rows/8, 100, 20, 0, 0);
 
-    vector<bool> detects(contours.size(), false);
-  
-
-    size_t num_contours = contours.size();
-    for (size_t i = 0; i < num_contours; i++) {
-        double area = contourArea(contours[i]);
-        //cout << "Area:" << area << endl;
-        if (area > limit && area < upperLimit) {
-            cout << "Area: " << area << endl;
-            detects[i] = true;
-        }
-    }
-    
-    // DRAW BOUNDING BOXES
-
-    findContours(mask, contours, CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE);
-    vector<vector<Point>> contours_poly(contours.size());
-    vector<Rect> boundRect(contours.size());
-
-    for(size_t i = 0; i < contours.size(); i++){
-        approxPolyDP(contours[i], contours_poly[i], 3, true);
-        boundRect[i] = boundingRect(contours_poly[i]);
-    }
-
-    
-    for(size_t i = 0; i < contours.size(); i++){
-        Scalar color = Scalar(255, 0,0);
-        if (detects[i]){
-            drawContours(input_img, contours, (int)i, color);
-            rectangle(input_img, boundRect[i].tl(), boundRect[i].br(), color, 2);
+    Point circle_center;
+    cout << "# of circles detected" << circles.size() << endl;    
+    if (circles.size() > 0){
+        for(size_t j = 0; j < 1; j++){
+            circle_center = Point(std::round(circles[j][0]), std::round(circles[j][1]));
+            int radius = std::round(circles[j][2]);
+            Scalar green = Scalar(0, 255, 0);
+            circle(input_img, circle_center, radius, green, 5);
+            //draw x in the middle
+            putText(input_img, "X", circle_center, FONT_HERSHEY_COMPLEX, 1, green, 2);
+            detected = true;
         }
     }
 
-
-
+    int image_width = input_img.cols;
+    
     if (detected) {
-        cout << "Detected" << std::endl;
+        cout << image_width << " " << circle_center <<std::endl;
+        string location ="NONE";
+        if(circle_center.x < image_width / 3){
+            location = "LEFT";
+        }else if(circle_center.x < image_width * 2 / 3){
+            location = "CENTER";
+        }else{
+            location = "RIGHT";
+        }
+        cout << "Detected " << location <<std::endl;
         msg.data = 1;
         controlPub.publish(msg);
     }else{
@@ -203,10 +222,11 @@ void cv_color_tracking(const Mat& input_img, ros::Publisher &controlPub)
         controlPub.publish(msg);
     }
     cv::imshow("color_tracking_input_image", input_img);
-    cv::imshow("blue_tracking", mask); 
-    
+    cv::imshow("red_range", mask);
+
     waitKey(1);
 }
+
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg, image_transport::Publisher &pub, ros::Publisher &controlPub)
 {
