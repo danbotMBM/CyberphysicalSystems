@@ -1,4 +1,4 @@
-// ~/catkin_ws/src/zed_wrapper/src/zed_wrapper_node.cpp
+// ~/catkin_ws/src/zed-ros-wrapper/src/zed_wrapper_node.cpp
 ///////////////////////////////////////////////////////////////////////////
 //
 // Copyright (c) 2017, STEREOLABS.

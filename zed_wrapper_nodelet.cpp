@@ -1,3 +1,4 @@
+// ~/catkin_ws/src/zed-ros-wrapper/src/zed_wrapper_nodelet.cpp
 ///////////////////////////////////////////////////////////////////////////
 //
 // Copyright (c) 2017, STEREOLABS.
@@ -149,7 +150,7 @@ namespace zed_wrapper {
         int confidence;
         bool computeDepth;
         bool grabbing = false;
-        int openniDepthMode = 0; // 16 bit UC data in mm else 32F in m, for more info http://www.ros.org/reps/rep-0118.html
+        int openniDepthMode = 1; // 16 bit UC data in mm else 32F in m, for more info http://www.ros.org/reps/rep-0118.html
 
         // Point cloud variables
         sl::Mat cloud;

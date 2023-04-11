@@ -2,6 +2,7 @@
 #include <ros/ros.h>
 #include <image_transport/image_transport.h>
 #include <opencv2/highgui/highgui.hpp>
+#include <sensor_msgs/image_encodings.h>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <ctime>
@@ -172,6 +173,26 @@ void cv_color_tracking(const Mat& input_img, ros::Publisher &controlPub)
     waitKey(1);
 }
 
+void cv_process_depth(const Mat& input_img, Mat& output_img)
+{
+    cv::imshow("depth",input_img);
+}
+
+void depthCallback(const sensor_msgs::ImageConstPtr& msg, image_transport::Publisher &pub, ros::Publisher &controlPub)
+{
+    auto start = std::chrono::high_resolution_clock::now();
+    cv_bridge::CvImageConstPtr cv_ori_img_ptr;
+    try{
+        Mat cv_ori_img = cv_bridge::toCvShare(msg, "16UC1")->image;
+        Mat cv_output_img;
+        
+        cv_process_depth(cv_ori_img, cv_output_img);
+        // cv_publish_img(pub, cv_output_img);
+    }catch(cv_bridge::Exception& e){
+        // ROS_ERROR("Could not convert from '%s' to 'CV_16UC1'. For '%s'", msg->encoding.c_str(), e.what());
+        ROS_ERROR("msg\n\tHeight:'%lu'\n\tWidth:'%lu'\n\tStep:'%lu'", msg->height, msg->width, msg->step);
+    }
+}
 
 void imageCallback(const sensor_msgs::ImageConstPtr& msg, image_transport::Publisher &pub, ros::Publisher &controlPub)
 {
@@ -256,7 +277,7 @@ int main(int argc, char **argv)
     t_begin = clock();
 #endif
     
-    image_transport::Subscriber sub = it.subscribe("rgb/image_rect_color", 1, boost::bind(imageCallback, _1, pub, controlPub));
+    image_transport::Subscriber sub = it.subscribe("depth/depth_raw_registered", 1, boost::bind(depthCallback, _1, pub, controlPub));
     //ros::Subscriber controlSub = it.subscribe("rbg/image_rect_color")
     ros::spin();
     
