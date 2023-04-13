@@ -2,12 +2,81 @@
 # ~/catkin_ws/src/color_tracking/src/vision.py
 import rospy as ros
 import cv2 as cv
+import numpy as np
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from cv_bridge import CvBridge
 
 ros.init_node("image_listener", anonymous=True)
 bridge = CvBridge()
+
+class circle:
+    def __init__(self, center, radius, score):
+        self.center = center
+        self.radius = radius
+        self.score = score
+
+    def x(self):
+        return self.center[0]
+
+    def y(self):
+        return self.center[1]
+    
+    def __str__(self):
+        return "Center: "+str(self.center)+ " Radius: "+ str(self.radius)+ " Score: " + str(self.score)
+    
+def red_mask(hsv_img):
+    #must be HSV
+    lower_red = np.array([0, 50, 50])
+    upper_red = np.array([10, 255, 255])
+    mask = cv.inRange(hsv_img, lower_red, upper_red)
+    return mask
+
+def draw_circles(img, circles, color):
+    for c in circles:
+        cv.circle(img, c.center, c.radius, color, 2)
+
+def morph(mask):
+    kernel = np.ones((5, 5), np.uint8)
+    mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+    mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
+    #cv.imshow('mask', mask)
+
+def circle_detect_hough(bgr_img):
+    gray = cv.cvtColor(bgr_img, cv.COLOR_BGR2GRAY)
+
+    circles = cv.HoughCircles(gray, cv.HOUGH_GRADIENT, 1, 20, param1=50, param2=30, minRadius=0, maxRadius=0)
+
+    result = []
+    if circles is not None:
+        r_circles = np.round(circles[0, :]).astype("int")
+        for (x, y, r) in r_circles:
+            result.append(circle((x,y), r, 0))
+    return result
+
+
+def circle_detect_contours(img, threshold):
+    RADIAL_MIN = 6
+    mask = red_mask(img)
+    morph(mask)
+
+    contours = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)[1]
+    #print("contours", contours)
+    circles = []
+    for cnt in contours:
+        area = cv.contourArea(cnt)
+        perimeter = cv.arcLength(cnt, True)
+        if perimeter == 0:
+            continue
+        circularity = 4 * np.pi * area / (perimeter ** 2)
+        if circularity > threshold:
+            (x, y), radius = cv.minEnclosingCircle(cnt)
+            center = (int(x), int(y))
+            radius = int(radius)
+            if radius > RADIAL_MIN:
+                circles.append(circle(center, radius, circularity))
+    return circles
+
 
 color_recv = False
 depth_recv = False
@@ -43,15 +112,17 @@ def depth_callback(msg, pub):
 
 
 def display():
-    depth_recv = True
     if color_recv and depth_recv:
-        print(color_img.shape, type(color_img[0][0][0]), color_img)
-        print(depth_img.shape, type(depth_img[0][0]), depth_img)
+        #print(color_img.shape, type(color_img[0][0][0]), color_img)
+        #print(depth_img.shape, type(depth_img[0][0]), depth_img)
     	#cv.imshow("depth", depth_img)
     	#cv.imshow("color", color_img)
-  
+        hsv_img = cv.cvtColor(color_img, cv.COLOR_BGR2HSV)
+        contour_circles = circle_detect_contours(hsv_img, 0.8)
+        for c in contour_circles:
+            if c.x() < 720 and c.x() > 0 and c.y() < 1280 and c.y() > 0:
+                print(c, "depth=", depth_img[c.x()][c.y()])
         
-    cv.waitKey(1)
 
 
 def main():

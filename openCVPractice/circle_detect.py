@@ -1,9 +1,9 @@
 
-# importing cv2
-import cv2
+# importing cv
+import cv2 as cv
 import numpy as np
 
-cap = cv2.VideoCapture(0)
+cap = cv.VideoCapture(0)
 
 class circle:
     def __init__(self, center, radius, score):
@@ -24,23 +24,23 @@ def red_mask(hsv_img):
     #must be HSV
     lower_red = np.array([0, 50, 50])
     upper_red = np.array([10, 255, 255])
-    mask = cv2.inRange(hsv_img, lower_red, upper_red)
+    mask = cv.inRange(hsv_img, lower_red, upper_red)
     return mask
 
 def draw_circles(img, circles, color):
     for c in circles:
-        cv2.circle(img, c.center, c.radius, color, 2)
+        cv.circle(img, c.center, c.radius, color, 2)
 
 def morph(mask):
     kernel = np.ones((5, 5), np.uint8)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-    mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-    cv2.imshow('mask', mask)
+    mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
+    mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
+    cv.imshow('mask', mask)
 
 def circle_detect_hough(bgr_img):
-    gray = cv2.cvtColor(bgr_img, cv2.COLOR_BGR2GRAY)
+    gray = cv.cvtColor(bgr_img, cv.COLOR_BGR2GRAY)
 
-    circles = cv2.HoughCircles(gray, cv2.HOUGH_GRADIENT, 1, 20, param1=50, param2=30, minRadius=0, maxRadius=0)
+    circles = cv.HoughCircles(gray, cv.HOUGH_GRADIENT, 1, 20, param1=50, param2=30, minRadius=0, maxRadius=0)
 
     result = []
     if circles is not None:
@@ -55,17 +55,17 @@ def circle_detect_contours(img, threshold):
     mask = red_mask(img)
     morph(mask)
 
-    contours, hierarchy = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    contours, hierarchy = cv.findContours(mask, cv.RETR_EXTERNAL, cv.CHAIN_APPROX_SIMPLE)
     
     circles = []
     for cnt in contours:
-        area = cv2.contourArea(cnt)
-        perimeter = cv2.arcLength(cnt, True)
+        area = cv.contourArea(cnt)
+        perimeter = cv.arcLength(cnt, True)
         if perimeter == 0:
             continue
         circularity = 4 * np.pi * area / (perimeter ** 2)
         if circularity > threshold:
-            (x, y), radius = cv2.minEnclosingCircle(cnt)
+            (x, y), radius = cv.minEnclosingCircle(cnt)
             center = (int(x), int(y))
             radius = int(radius)
             if radius > RADIAL_MIN:
@@ -74,7 +74,7 @@ def circle_detect_contours(img, threshold):
 
 while True:
     ret, img = cap.read()
-    hsv_img = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    hsv_img = cv.cvtColor(img, cv.COLOR_BGR2HSV)
     contour_circles = circle_detect_contours(hsv_img, 0.8)
     for c in contour_circles:
         print(c, end="")
@@ -85,7 +85,7 @@ while True:
     green = (0, 255, 0)
     draw_circles(drawn, contour_circles, blue)
     #draw_circles(drawn, hough_circles, green)
-    cv2.imshow('Circles', drawn)
-    cv2.waitKey(1)
+    cv.imshow('Circles', drawn)
+    cv.waitKey(1)
  
-cv2.destroyAllWindows()
+cv.destroyAllWindows()
