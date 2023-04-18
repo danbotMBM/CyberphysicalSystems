@@ -27,10 +27,13 @@ class circle:
     
 def red_mask(hsv_img):
     #must be HSV
-    lower_red = np.array([0, 50, 50])
-    upper_red = np.array([10, 255, 255])
-    mask = cv.inRange(hsv_img, lower_red, upper_red)
-    return mask
+    lower_red1 = np.array([0, 100, 20])
+    lower_red2 = np.array([9, 255, 255])
+    upper_red1 = np.array([171, 100, 20])
+    upper_red2 = np.array([180, 255, 255])
+    mask1 = cv.inRange(hsv_img, lower_red1, lower_red2)
+    mask2 = cv.inRange(hsv_img, upper_red1, upper_red2)
+    return mask1 | mask2
 
 def draw_circles(img, circles, color):
     for c in circles:
@@ -40,7 +43,9 @@ def morph(mask):
     kernel = np.ones((5, 5), np.uint8)
     mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
     mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
-    #cv.imshow('mask', mask)
+    # cv.imshow('mask', mask)
+    
+    # cv.waitKey(1)
 
 def circle_detect_hough(bgr_img):
     gray = cv.cvtColor(bgr_img, cv.COLOR_BGR2GRAY)
@@ -56,7 +61,7 @@ def circle_detect_hough(bgr_img):
 
 
 def circle_detect_contours(img, threshold):
-    RADIAL_MIN = 6
+    RADIAL_MIN = 15
     mask = red_mask(img)
     morph(mask)
 
@@ -91,6 +96,7 @@ def img_callback(msg, pub):
     color_img = img
     color_recv = True
     #print(img.shape, img)
+    #cv.imshow("Colored", img)
     display()
 
 
@@ -118,10 +124,10 @@ def display():
     	#cv.imshow("depth", depth_img)
     	#cv.imshow("color", color_img)
         hsv_img = cv.cvtColor(color_img, cv.COLOR_BGR2HSV)
-        contour_circles = circle_detect_contours(hsv_img, 0.8)
+        contour_circles = circle_detect_contours(hsv_img, 0.4)
         for c in contour_circles:
             if c.x() < 720 and c.x() > 0 and c.y() < 1280 and c.y() > 0:
-                print(c, "depth=", depth_img[c.x()][c.y()])
+                print(str(c), "depth=", depth_img[c.x()][c.y()])
         
 
 
