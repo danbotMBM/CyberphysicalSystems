@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 #~/catkin_ws/src/race/src/control.py
 
 import rospy
@@ -14,7 +15,7 @@ vel_input = 0.0
 ang_input = 0.0
 start_time = 0.0
 choice = 0  # choose spin mode
-end_time = time.monotonic()
+# end_time = time.monotonic()
 
 
 def callback(data, pub):
@@ -37,7 +38,7 @@ def callback(data, pub):
     msg.velocity = velocity
     msg.angle = angle
 
-    print(f"Velocity: {msg.velocity:.5f} Angle: {msg.angle:.5f}")
+    print("Velocity: " + msg.velocity + " Angle: " + msg.angle)
     pub.publish(msg)
 
     # TEST:
@@ -52,9 +53,9 @@ def main():
 	# choice = 0
     given_time = 100
     hz = 10
-    command
-    command_s1
-    command_s2
+    # command
+    # command_s1
+    # command_s2
         # # Get user input
     # # print("Listening to error for PID")
     # # vel_input = float(input("Enter Velocity: "))
@@ -84,7 +85,7 @@ def main():
     run = True
     while run:
         msg = drive_param()
-        command = input("Enter command: ")
+        command = raw_input("Enter command: ")
         command_type = command[0]
 
         if len(command) > 1:
@@ -94,14 +95,14 @@ def main():
 
         if command_type == "s":
             vel_input = value
-            print(f"Velocity set to {vel_input:.5f}")
+            print("Velocity set to " + str(vel_input))
         elif command_type == "t":
             ang_input = value
-            print(f"Angle set to {ang_input:.5f}")
+            print("Angle set to " + str(ang_input))
         elif command_type == "c":
             vel_input = 12
             ang_input = 100
-            print(f"Velocity set to {vel_input:.5f} and Angle set to {ang_input:.5f}")
+            print("Velocity set to " + str(vel_input) + " and Angle set to " + str(ang_input))
         elif command_type == "h":
             vel_input = 0
             ang_input = 0
@@ -122,4 +123,8 @@ def main():
         # TODO Check angle
         pub.publish(msg)
         # CHECKS CALLBACK once
-        rospy.spin_once()
+        # rospy.spin()
+
+if __name__ == '__main__':
+	print("RUNNING")
+	main()
