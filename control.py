@@ -45,24 +45,32 @@ def callback(data, pub):
 
 
 def main():
-    global ang_input, vel_input
+    # ros.Subscriber("vision/imageStuff", Image, depth_callback, (pub))
+    global ang_input, vel_input	
+    pub_queue_size = 1
+    sub_queue_size = 1
+	# choice = 0
+    given_time = 100
+    hz = 10
+    command
+    command_s1
+    command_s2
+        # # Get user input
+    # # print("Listening to error for PID")
+    # # vel_input = float(input("Enter Velocity: "))
+    # """
+    # # Choose different types of spin
+    # print("Choose spinning method(0--Robust Spin, 1--Dynamic Spin, 2--Static Spin): ")
+    # choice = int(input())
+    # if choice == 1:
+    #     print("Enter Execution Time in milliseconds: ")
+    #     given_time = int(input())
+    # if choice == 2:
+    #     print("Enter Frequency in HZ: ")
+    #     hz = int(input())
+    # """
 
-    # Get user input
-    # print("Listening to error for PID")
-    # vel_input = float(input("Enter Velocity: "))
-    """
-    # Choose different types of spin
-    print("Choose spinning method(0--Robust Spin, 1--Dynamic Spin, 2--Static Spin): ")
-    choice = int(input())
-    if choice == 1:
-        print("Enter Execution Time in milliseconds: ")
-        given_time = int(input())
-    if choice == 2:
-        print("Enter Frequency in HZ: ")
-        hz = int(input())
-    """
-
-    # Initiate Node
+    # Initiate Node    
     rospy.init_node("pid_controller")
 
     # Create Node Handler for publisher
