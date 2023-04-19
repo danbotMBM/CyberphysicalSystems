@@ -9,12 +9,13 @@ from cv_bridge import CvBridge
 
 ros.init_node("image_listener", anonymous=True)
 bridge = CvBridge()
-
+curr_circles = []
 class circle:
     def __init__(self, center, radius, score):
         self.center = center
         self.radius = radius
         self.score = score
+        self.depth = None
 
     def x(self):
         return self.center[0]
@@ -22,8 +23,31 @@ class circle:
     def y(self):
         return self.center[1]
     
+    def set_depth(self, val):
+        if val and not np.isnan(val):
+            self.depth = val
+
+    def get_depth(self):
+        if self.depth:
+            return self.depth
+        else:
+            return -1.0
+
+    def rank(self):
+        points = 0
+        if self.radius > 50 and self.radius < 180:
+            points += 1
+        if self.score > 0.4:
+            points += int((self.score*10-4)*2)
+        if self.get_depth() > 500 and self.get_depth() < 4000:
+            points += 1
+        if self.x() > 1280/4 and self.x() < 1280/4*3 and self.y() > 720/4 and self.y() < 720/4*3:
+            points += 1
+
+        return points
+    
     def __str__(self):
-        return "Center: "+str(self.center)+ " Radius: "+ str(self.radius)+ " Score: " + str(self.score)
+        return "Center: "+str(self.center)+ " Radius: "+ str(self.radius)+ " Score: " + str(self.score) + " Depth: " + str(self.get_depth()) + " Rank: " + str(self.rank())
     
 def red_mask(hsv_img):
     #must be HSV
@@ -43,9 +67,6 @@ def morph(mask):
     kernel = np.ones((5, 5), np.uint8)
     mask = cv.morphologyEx(mask, cv.MORPH_OPEN, kernel)
     mask = cv.morphologyEx(mask, cv.MORPH_CLOSE, kernel)
-    # cv.imshow('mask', mask)
-    
-    # cv.waitKey(1)
 
 def circle_detect_hough(bgr_img):
     gray = cv.cvtColor(bgr_img, cv.COLOR_BGR2GRAY)
@@ -95,9 +116,19 @@ def img_callback(msg, pub):
     img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
     color_img = img
     color_recv = True
-    #print(img.shape, img)
-    #cv.imshow("Colored", img)
-    display()
+    #DEBUG DISPLAY
+    if True:
+        disp = img.copy()
+        for c in curr_circles:
+            d = int(c.radius*.4)
+            tl = (c.x()-d, c.y()-d)
+            br = (c.x()+d, c.y()+d)
+            cv.rectangle(disp, tl, br, (255,0,0),1)
+            cv.circle(disp, c.center, c.radius, (0,0,255), 3)
+            cv.putText(disp, str(c.get_depth()) + " R" + str(c.rank()), c.center, cv.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 1)
+        cv.imshow("color", disp)
+        cv.waitKey(1)
+    detect(pub)
 
 
 def depth_callback(msg, pub):
@@ -105,29 +136,54 @@ def depth_callback(msg, pub):
     global depth_img
     print("depth callback")
     img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
+    #DEBUG DISPLAY
+    if False:
+        cv.imshow("depth Colored", img)
+        mask = cv.inRange(img, 0,0)
+        for c in curr_circles:
+            cv.circle(mask, c.center, c.radius, 150, 3)
+        cv.imshow("o", mask)
+        cv.waitKey(1)
     depth_img = img
     depth_recv = True
-    #print(img.shape, type(img[0][0]))
-    #print(img)
-    display()
-    #img = cv.normalize(img, None, 0, 255, cv.NORM_MINMAX, cv.CV_8UC1)
-
-    # map = cv.applyColorMap(img, cv.COLORMAP_RAINBOW)
-    #cv.imshow("depth Colored", img)
-    #cv.waitKey(1)
+    detect(pub)
 
 
-def display():
+def estimate_depth(depth, circle):
+    d = int(circle.radius*.4)
+    tl = (circle.x()-d, circle.y()-d)
+    br = (circle.x()+d, circle.y()+d)
+    chunk = depth[tl[1]:br[1], tl[0]:br[0]]
+    return np.sum(chunk)/np.count_nonzero(chunk)
+
+def choose_circle(circles):
+    return sorted(circles, key=lambda c: c.rank())[0]
+
+def send_instruction(pub, circle):
+    if circle.get_depth > 1000:
+        pub.publish("s 15")
+    else:
+        pub.publish("s 0")
+
+def detect(pub):
+    global curr_circles
     if color_recv and depth_recv:
-        #print(color_img.shape, type(color_img[0][0][0]), color_img)
-        #print(depth_img.shape, type(depth_img[0][0]), depth_img)
-    	#cv.imshow("depth", depth_img)
-    	#cv.imshow("color", color_img)
         hsv_img = cv.cvtColor(color_img, cv.COLOR_BGR2HSV)
         contour_circles = circle_detect_contours(hsv_img, 0.4)
         for c in contour_circles:
-            if c.x() < 720 and c.x() > 0 and c.y() < 1280 and c.y() > 0:
-                print(str(c), "depth=", depth_img[c.x()][c.y()])
+            c.set_depth(estimate_depth(depth_img, c))
+        if contour_circles:
+            curr_circles = contour_circles
+            circle = choose_circle(contour_circles)
+            print(circle.rank())
+    	    #logic to publish is here
+            if circle.rank() > 2:
+                send_instruction(pub, circle)
+            for c in curr_circles:
+                print c
+        
+    
+
         
 
 
