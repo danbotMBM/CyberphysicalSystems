@@ -182,13 +182,22 @@ def detect(pub):
             for c in curr_circles:
                 print c
         
-    
-
         
+def command_publisher():
+    
+    rospy.init_node('command_publisher', anonymous=True)
+    rate = rospy.Rate(10) # 10hz
+    # while not rospy.is_shutdown():
+    command_str = "Hello World %s" % rospy.get_time()#CHANGE THIS
+    rospy.loginfo(command_str)
+    pub.publish(command_str)
+    rate.sleep()
 
 
 def main():
     pub = ros.Publisher("vision/imageStuff", String, queue_size=1000)
+
+    # command_publisher()
     
     ros.Subscriber("depth/depth_raw_registered", Image, depth_callback, (pub))
     ros.Subscriber("rgb/image_rect_color", Image, img_callback, (pub))

@@ -38,12 +38,19 @@ def callback(data, pub):
     msg.velocity = velocity
     msg.angle = angle
 
+    rospy.loginfo(rospy.get_caller_id() + " I heard %s", data.data)
+
     print("Velocity: " + msg.velocity + " Angle: " + msg.angle)
     pub.publish(msg)
 
     # TEST:
     # end_time = time.monotonic()
 
+
+def command_subscriber():
+    rospy.init_node('command_subscriber', anonymous=True)
+    rospy.Subscriber("command_topic", String, callback)
+    rospy.spin()
 
 def main():
     # ros.Subscriber("vision/imageStuff", Image, depth_callback, (pub))
@@ -124,6 +131,7 @@ def main():
         pub.publish(msg)
         # CHECKS CALLBACK once
         # rospy.spin()
+        # command_subscriber()
 
 if __name__ == '__main__':
 	print("RUNNING")
