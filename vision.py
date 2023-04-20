@@ -3,6 +3,7 @@
 import rospy as ros
 import cv2 as cv
 import numpy as np
+import json
 from sensor_msgs.msg import Image
 from std_msgs.msg import String
 from cv_bridge import CvBridge
@@ -112,7 +113,7 @@ depth_img = None
 def img_callback(msg, pub):
     global color_img
     global color_recv
-    print("img_callback")
+    #print("img_callback")
     img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
     color_img = img
     color_recv = True
@@ -126,15 +127,18 @@ def img_callback(msg, pub):
             cv.rectangle(disp, tl, br, (255,0,0),1)
             cv.circle(disp, c.center, c.radius, (0,0,255), 3)
             cv.putText(disp, str(c.get_depth()) + " R" + str(c.rank()), c.center, cv.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 1)
-        cv.imshow("color", disp)
-        cv.waitKey(1)
+    try:
+       cv.imshow("color", disp)
+       cv.waitKey(1)
+    except Exception:
+        pass
     detect(pub)
 
 
 def depth_callback(msg, pub):
     global depth_recv
     global depth_img
-    print("depth callback")
+    #print("depth callback")
     img = bridge.imgmsg_to_cv2(msg, desired_encoding="passthrough")
     #DEBUG DISPLAY
     if False:
@@ -160,10 +164,14 @@ def choose_circle(circles):
     return sorted(circles, key=lambda c: c.rank())[0]
 
 def send_instruction(pub, circle):
-    if circle.get_depth > 1000:
-        pub.publish("s 15")
-    else:
-        pub.publish("s 0")
+    vel = 0
+    CLOSE = 700
+    MIN_SPEED = 12
+    SWEET_SPOT = 1280//2 #what pixel of the center of screen is appropriate
+    if circle.get_depth() > CLOSE:
+        vel = (circle.get_depth() - CLOSE) / 50 + MIN_SPEED
+    angle = (circle.x() - SWEET_SPOT) / 5
+    pub.publish(json.dumps({'speed':vel, 'angle':angle}))
 
 def detect(pub):
     global curr_circles
@@ -174,13 +182,13 @@ def detect(pub):
             c.set_depth(estimate_depth(depth_img, c))
         if contour_circles:
             curr_circles = contour_circles
-            circle = choose_circle(contour_circles)
-            print(circle.rank())
+        circle = choose_circle(curr_circles)
+        print(circle.rank())
     	    #logic to publish is here
-            if circle.rank() > 2:
-                send_instruction(pub, circle)
-            for c in curr_circles:
-                print c
+        if circle.rank() > 2:
+            send_instruction(pub, circle)
+        #for c in curr_circles:
+            #print c
         
     
 
@@ -188,7 +196,8 @@ def detect(pub):
 
 
 def main():
-    pub = ros.Publisher("vision/imageStuff", String, queue_size=1000)
+    pub = ros.Publisher("instruct/commands", String, queue_size=1000)
+    pub.publish("s 0")
     
     ros.Subscriber("depth/depth_raw_registered", Image, depth_callback, (pub))
     ros.Subscriber("rgb/image_rect_color", Image, img_callback, (pub))
