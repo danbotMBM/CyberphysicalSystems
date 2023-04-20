@@ -170,6 +170,8 @@ def send_instruction(pub, circle):
     SWEET_SPOT = 1280//2 #what pixel of the center of screen is appropriate
     if circle.get_depth() > CLOSE:
         vel = (circle.get_depth() - CLOSE) / 50 + MIN_SPEED
+    elif circle.get_depth() <= CLOSE and abs(circle.x() - SWEET_SPOT) < 213:
+        vel = 50
     angle = (circle.x() - SWEET_SPOT) / 5
     pub.publish(json.dumps({'speed':vel, 'angle':angle}))
 
