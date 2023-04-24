@@ -127,11 +127,11 @@ def img_callback(msg, pub):
             cv.rectangle(disp, tl, br, (255,0,0),1)
             cv.circle(disp, c.center, c.radius, (0,0,255), 3)
             cv.putText(disp, str(c.get_depth()) + " R" + str(c.rank()), c.center, cv.FONT_HERSHEY_SIMPLEX, 1, (0,255,0), 1)
-    try:
-       cv.imshow("color", disp)
-       cv.waitKey(1)
-    except Exception:
-        pass
+    # try:
+    #    #cv.imshow("color", disp)
+    #    #cv.waitKey(1)
+    # except Exception:
+    #     pass
     detect(pub)
 
 
@@ -150,7 +150,6 @@ def depth_callback(msg, pub):
         cv.waitKey(1)
     depth_img = img
     depth_recv = True
-    detect(pub)
 
 
 def estimate_depth(depth, circle):
@@ -163,32 +162,67 @@ def estimate_depth(depth, circle):
 def choose_circle(circles):
     return sorted(circles, key=lambda c: c.rank())[0]
 
+kick_state = 0
+frames_in_state = 0
 def send_instruction(pub, circle):
+    if not circle:
+        return
+    global kick_state, frames_in_state
     vel = 0
-    CLOSE = 700
-    MIN_SPEED = 12
+    CLOSE = 950
+    MIN_SPEED = 18
     SWEET_SPOT = 1280//2 #what pixel of the center of screen is appropriate
     if circle.get_depth() > CLOSE:
-        vel = (circle.get_depth() - CLOSE) / 50 + MIN_SPEED
+        if kick_state == 1:
+            kick_state = 0
+            frames_in_state = 0
+        frames_in_state +=1
+
+        vel = (circle.get_depth() - CLOSE) / 75 + MIN_SPEED
     elif circle.get_depth() <= CLOSE and abs(circle.x() - SWEET_SPOT) < 213:
-        vel = 50
+        if kick_state == 0:
+            kick_state = 1
+            frames_in_state = 0
+        frames_in_state +=1
+        vel = 90
+    if frames_in_state > 10 and kick_state == 1:
+        #we've been kicking for a while
+        # stop for a while
+        frames_in_state +=1
+        vel = 0
+        if frames_in_state > 200:
+            frames_in_state = 0
+    
+
     angle = (circle.x() - SWEET_SPOT) / 5
     pub.publish(json.dumps({'speed':vel, 'angle':angle}))
 
+frames_since = 0
 def detect(pub):
-    global curr_circles
+    global curr_circles, frames_since
     if color_recv and depth_recv:
         hsv_img = cv.cvtColor(color_img, cv.COLOR_BGR2HSV)
         contour_circles = circle_detect_contours(hsv_img, 0.4)
         for c in contour_circles:
             c.set_depth(estimate_depth(depth_img, c))
         if contour_circles:
+            frames_since = 0
             curr_circles = contour_circles
+        else:
+            print "NONE FOUND"
         circle = choose_circle(curr_circles)
-        print(circle.rank())
     	    #logic to publish is here
-        if circle.rank() > 2:
+        if circle:
+            print "Rank " + str(circle.rank()) + " frames since " + str(frames_since)
+        frames_since += 1
+
+        CONSEC = 5
+        if circle.rank() > 2 and frames_since < CONSEC:
             send_instruction(pub, circle)
+        else:
+            print "STOPPING"
+            pub.publish(json.dumps({'speed':0, 'angle':-20}))
+        
         #for c in curr_circles:
             #print c
         
